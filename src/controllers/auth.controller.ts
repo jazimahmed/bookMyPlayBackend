@@ -1,34 +1,32 @@
 import { Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
-import { LoginInput } from "../types/auth.types";
-import { UserInput } from "../types/user.types";
 
-export class AuthController {
-  private authService: AuthService;
+const authService = new AuthService();
 
-  constructor() {
-    this.authService = new AuthService();
+export const sendOtp = async (req: Request, res: Response) => {
+  try {
+    const { phone, name } = req.body;  // added name here
+    const result = await authService.sendOtp(phone, name);  // pass name to service
+    res.json(result);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      res.status(400).json({ error: err.message });
+    } else {
+      res.status(400).json({ error: "An unknown error occurred" });
+    }
   }
+};
 
-  register = async (req: Request, res: Response) => {
-    try {
-      const userData: UserInput = req.body;
-      const result = await this.authService.register(userData);
-
-      res.status(201).json(result);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
+export const verifyOtp = async (req: Request, res: Response) => {
+  try {
+    const { phone, otp } = req.body;
+    const result = await authService.verifyOtp(phone, otp);
+    res.json(result);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      res.status(400).json({ error: err.message });
+    } else {
+      res.status(400).json({ error: "An unknown error occurred" });
     }
-  };
-
-  login = async (req: Request, res: Response) => {
-    try {
-      const credentials: LoginInput = req.body;
-      const result = await this.authService.login(credentials);
-
-      res.status(200).json(result);
-    } catch (error: any) {
-      res.status(401).json({ message: error.message });
-    }
-  };
-}
+  }
+};

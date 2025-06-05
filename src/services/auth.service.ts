@@ -1,60 +1,63 @@
-import { AuthModel } from "../models/auth.model";
-import { UserModel } from "../models/user.model";
-import { LoginInput, AuthResponse } from "../types/auth.types";
-import { UserInput } from "../types/user.types";
+import { PrismaClient } from "@prisma/client";
 import { generateToken } from "../utils/jwt.utils";
+import { AuthResponse } from "../types/auth.types";
+import { sendOtpSms } from "../utils/sms.utils";
+
+const prisma = new PrismaClient();
 
 export class AuthService {
-  private authModel: AuthModel;
-  private userModel: UserModel;
+  async sendOtp(phone: string, name: string = "New User"): Promise<{ message: string }> {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-  constructor() {
-    this.authModel = new AuthModel();
-    this.userModel = new UserModel();
+    await prisma.user.upsert({
+      where: { phone },
+      update: { otp },
+      create: {
+        phone,
+        name,
+        otp,
+        role: "PLAYER",
+      },
+    });
+
+    // Simulate OTP sending
+    await sendOtpSms(phone, otp);
+
+    //console.log(`OTP sent to ${phone}: ${otp}`);
+    return { message: "OTP sent successfully" };
+    
   }
 
-  async register(userData: UserInput): Promise<AuthResponse> {
-    const existingUser = await this.userModel.findByEmail(userData.email);
+  async verifyOtp(phone: string, otp: string): Promise<AuthResponse> {
+    const user = await prisma.user.findUnique({
+      where: { phone },
+    });
 
-    if (existingUser) {
-      throw new Error("User with this email already exists");
+    if (!user || user.otp !== otp) {
+      throw new Error("Invalid phone number or OTP");
     }
 
-    const user = await this.userModel.create(userData);
+    const updatedUser = await prisma.user.update({
+      where: { phone },
+      data: {
+        isActive: true,
+        otp: null,
+      },
+    });
 
     const token = generateToken({
-      userId: user.id,
-      email: user.email,
+      userId: updatedUser.id,
+      phone: updatedUser.phone,
     });
 
     return {
       token,
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
+        id: updatedUser.id,
+        name: updatedUser.name,
+        phone: updatedUser.phone,
+        role: updatedUser.role,
       },
-    };
-  }
-
-  async login(credentials: LoginInput): Promise<AuthResponse> {
-    const user = await this.authModel.validateUser(
-      credentials.email,
-      credentials.password
-    );
-
-    if (!user) {
-      throw new Error("Invalid email or password");
-    }
-
-    const token = generateToken({
-      userId: user.id,
-      email: user.email,
-    });
-
-    return {
-      token,
-      user,
     };
   }
 }

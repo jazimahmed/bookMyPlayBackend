@@ -1,18 +1,16 @@
-export interface LoginInput {
-  email: string;
-  password: string;
-}
+import { Role } from "@prisma/client";
 
-export interface TokenPayload {
+export type TokenPayload = {
   userId: string;
-  email: string;
-}
+  phone: string;
+};
 
-export interface AuthResponse {
+export type AuthResponse = {
   token: string;
   user: {
     id: string;
-    email: string;
+    phone: string;
     name: string;
+    role: Role;
   };
-}
+};
