@@ -1,18 +1,11 @@
-import { Role } from "@prisma/client";
+import { User } from "@prisma/client";
 
-export interface UserInput {
-  email: string;
-  password: string;
-  name: string;
-  role?: Role;
-  
-}
+export type UserOutput = User;
 
-export interface UserOutput {
-  id: string;
-  email: string;
+export type UserInput = {
   name: string;
-  role: Role;
-  createdAt: Date;
-  updatedAt: Date;
-}
+  phone: string;
+  otp?: string;
+  role?: "PLAYER" | "OWNER";
+  isActive?: boolean;
+};
